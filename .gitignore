@@ -1,0 +1,40 @@
+
+# Environment files (actual secrets)
+apps/web/.env.local
+apps/server/.env
+
+# Next.js auto-generated TypeScript definitions
+apps/web/next-env.d.ts
+apps/server/next-env.d.ts
+
+# User-specific npm configuration
+.npmrc
+
+
+
+# Test directories
+apps/web/__tests__/
+
+
+
+
+# Scripts output/logs
+apps/web/scripts/*.log
+apps/server/scripts/*.log
+
+# App-specific .next builds
+apps/web/.next/
+apps/server/.next/
+
+# App-specific turbo cache
+.turbo/ 
+apps/web/.turbo/
+apps/server/.turbo/
+
+# App-specific node_modules (covered by root but explicit is clearer)
+apps/web/node_modules/
+apps/server/node_modules/
+packages/*/node_modules/
+node_modules/
+
+
