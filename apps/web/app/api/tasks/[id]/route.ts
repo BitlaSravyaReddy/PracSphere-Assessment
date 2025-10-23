@@ -50,7 +50,7 @@ export async function PUT(
     // Create a flexible update schema that allows past dates (for overdue tasks)
     const updateSchema = z.object({
       title: z.string().min(3).max(100).trim().optional(),
-      description: z.string().min(10).max(500).trim().optional(),
+      description: z.string().max(500).trim().optional(), // Description can be empty
       dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format").optional(),
       status: z.enum(["pending", "inprogress", "completed"]).optional(),
     });

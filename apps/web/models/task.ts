@@ -6,14 +6,13 @@ export interface ISubtask {
   id: string;
   title: string;
   completed: boolean;
-  dueDate?: string;
-  dueTime?: string;
+  time?: string;
 }
 //schema for main task
 export interface ITask {
   _id?: string;
   title: string;
-  description: string;
+  description?: string; // Made optional
   dueDate: string;
   status: "pending" | "inprogress" | "completed";
   userId: string;
@@ -28,8 +27,7 @@ const SubtaskSchema = new Schema<ISubtask>(
     id: { type: String, required: true },
     title: { type: String, required: true },
     completed: { type: Boolean, default: false },
-    dueDate: { type: String, required: false },
-    dueTime: { type: String, required: false },
+    time: { type: String, required: false },
   },
   { _id: false }
 );
@@ -38,7 +36,7 @@ const SubtaskSchema = new Schema<ISubtask>(
 const TaskSchema = new Schema<ITask>(
   {
     title: { type: String, required: true },
-    description: { type: String, required: true },
+    description: { type: String, required: false, default: "" }, // Made optional with default empty string
     dueDate: { type: String, required: true },
     status: {
       type: String,

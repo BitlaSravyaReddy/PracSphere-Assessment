@@ -6,7 +6,7 @@ export interface Task {
   dueDate: string;
   status: "pending" | "inprogress" | "completed";
   userId: string;
-  subtasks?: { id: string; title: string; completed: boolean }[];
+  subtasks?: { id: string; title: string; completed: boolean; time?: string }[];
 }
 
 export interface TaskFormData {
@@ -14,4 +14,5 @@ export interface TaskFormData {
   description: string;
   dueDate: string;
   status: "pending" | "inprogress" | "completed";
+  subtasks?: { id: string; title: string; completed: boolean; time?: string }[];
 }

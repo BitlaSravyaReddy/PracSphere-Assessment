@@ -5,8 +5,7 @@ interface Subtask {
   id: string;
   title: string;
   completed: boolean;
-  dueDate?: string;
-  dueTime?: string;
+  time?: string;
 }
 
 interface Task {
@@ -24,6 +23,7 @@ interface TaskFormData {
   description: string;
   dueDate: string;
   status: "pending" | "inprogress" | "completed";
+  subtasks?: Subtask[];
 }
 
 type PartialTaskFormData = Partial<TaskFormData>;
@@ -53,8 +53,9 @@ export const useTaskOperations = () => {
   // creates a new task by sending a POST request to /api/tasks with the provided form data
   const createTask = async (formData: TaskFormData) => {
     setError("");
-    if (!formData.title || !formData.description || !formData.dueDate) {
-      setError("All fields are required");
+    // Only title is required for task creation
+    if (!formData.title) {
+      setError("Task title is required");
       return false;
     }
 
@@ -137,8 +138,6 @@ export const useTaskOperations = () => {
       id: Date.now().toString(),
       title: subtaskTitle.trim(),
       completed: false,
-      dueDate: dueDate || undefined,
-      dueTime: dueTime || undefined,
     };
 
     const updatedSubtasks = [...(currentTask.subtasks || []), newSubtask];
@@ -158,7 +157,7 @@ export const useTaskOperations = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: currentTask.title,
-          description: currentTask.description,
+          description: currentTask.description || "", // Ensure description is always a string
           dueDate: currentTask.dueDate,
           status: newStatus,
           subtasks: updatedSubtasks,
@@ -169,10 +168,13 @@ export const useTaskOperations = () => {
         await fetchTasks();
         return true;
       } else {
+        const errorData = await res.json();
+        console.error("Failed to add subtask:", errorData);
         setError("Failed to add subtask");
         return false;
       }
     } catch (err) {
+      console.error("Error adding subtask:", err);
       setError("Error adding subtask");
       return false;
     }

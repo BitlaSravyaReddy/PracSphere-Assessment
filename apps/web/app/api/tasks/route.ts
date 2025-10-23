@@ -55,12 +55,14 @@ export async function POST(req: NextRequest) {
     await connectDB();
     const task = await Task.create({
       title,
-      description,
+      description: description || "", // Ensure description is always a string
       dueDate,
       status,
       userId: session.user.email,
       subtasks: subtasks || [],
     });
+    
+    console.log("Task created successfully:", task);
 
     return NextResponse.json({ task }, { status: 201 });
   } catch (error) {

@@ -51,9 +51,10 @@ export const taskSchema = z.object({
     .trim(),
   description: z
     .string()
-    .min(10, "Description must be at least 10 characters")
     .max(500, "Description must be less than 500 characters")
-    .trim(),
+    .trim()
+    .optional()
+    .default(""),
   dueDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format")

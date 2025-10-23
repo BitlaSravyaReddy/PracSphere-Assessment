@@ -64,6 +64,17 @@ export default function Dashboard() {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+  
+  // State for smart task creation using natural language input
+  const [smartInput, setSmartInput] = useState("");
+  const [parsingTask, setParsingTask] = useState(false);
+  const [parsedTaskPreview, setParsedTaskPreview] = useState<any>(null);
+  const [parseWarnings, setParseWarnings] = useState<string[]>([]);
+  const [confirmCreate, setConfirmCreate] = useState(false);
+  
+  // State for AI task insights
+  const [taskInsight, setTaskInsight] = useState<string>("");
+  const [loadingInsight, setLoadingInsight] = useState(false);
 
   // Redirect unauthenticated users to the login page
   useAuthRedirect(status);
@@ -74,8 +85,30 @@ export default function Dashboard() {
     if (status === "authenticated" && !hasFetched.current) {
       hasFetched.current = true;
       fetchTasks();
+      fetchTaskInsights(); // Fetch insights when dashboard loads
     }
   }, [status, fetchTasks]);
+
+  // Fetch AI-generated task insights based on user's task completion patterns
+  const fetchTaskInsights = async () => {
+    setLoadingInsight(true);
+    try {
+      const response = await fetch("/api/tasks/insights");
+      const data = await response.json();
+      
+      if (data.success && data.insight) {
+        setTaskInsight(data.insight);
+      } else if (data.insight) {
+        // Fallback insight
+        setTaskInsight(data.insight);
+      }
+    } catch (error) {
+      console.error("Error fetching insights:", error);
+      setTaskInsight("Keep pushing forward! Every task completed is a step towards your goals.");
+    } finally {
+      setLoadingInsight(false);
+    }
+  };
 
   // Create handlers for task operations using the factory function
   const { handleCreateTask, handleUpdateTask, handleDeleteTask } = createTaskHandlers({
@@ -151,6 +184,11 @@ export default function Dashboard() {
     if (success) {
       setSuccessMessage(`Task moved to ${newStatus === 'inprogress' ? 'In Progress' : newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`);
       setTimeout(() => setSuccessMessage(""), 3000);
+      
+      // Refresh insights when a task is moved to completed
+      if (newStatus === 'completed') {
+        fetchTaskInsights();
+      }
     } else {
       setError("Failed to update task status");
       setTimeout(() => setError(""), 3000);
@@ -170,6 +208,110 @@ export default function Dashboard() {
   // Toggle the completion status of a subtask
   const handleToggleSubtask = async (task: Task, subtaskId: string) => {
     await toggleSubtask(task._id, subtaskId);
+  };
+
+  // Handle smart task creation using natural language input parsed by AI
+  const handleSmartTaskCreation = async () => {
+    console.log("handleSmartTaskCreation called with input:", smartInput);
+    
+    if (!smartInput.trim()) {
+      console.log("Input is empty, returning");
+      return;
+    }
+    
+    setParsingTask(true);
+    setError("");
+    
+    try {
+      console.log("Calling /api/tasks/parse with input:", smartInput);
+      
+      // Call the Gemini API to parse the natural language input
+      const response = await fetch("/api/tasks/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: smartInput }),
+      });
+      
+      const data = await response.json();
+      console.log("API response:", data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to parse task");
+      }
+      
+      if (data.success && data.task) {
+        console.log("Parsed task returned:", data.task);
+        // If warnings are present, store the parsed preview and warnings and wait for confirmation
+        if (data.warnings && data.warnings.length > 0) {
+          setParsedTaskPreview(data.task);
+          setParseWarnings(data.warnings || []);
+          setConfirmCreate(false);
+          return;
+        }
+
+        console.log("Creating task with data:", data.task);
+        // Create the task directly in the database using the AI-parsed data, including subtasks
+        const success = await createTask({
+          title: data.task.title,
+          description: data.task.description || "",
+          dueDate: data.task.dueDate || "",
+          status: data.task.status || "pending",
+          subtasks: data.task.subtasks || [],
+        });
+        
+        console.log("Task creation result:", success);
+        
+        if (success) {
+          // Clear the smart input
+          setSmartInput("");
+          
+          const subtaskCount = data.task.subtasks?.length || 0;
+
+        // If user had previously confirmed create despite warnings, handle it here
+        if (confirmCreate && parsedTaskPreview) {
+          console.log("User confirmed creation despite warnings. Creating:", parsedTaskPreview);
+          const success = await createTask({
+            title: parsedTaskPreview.title,
+            description: parsedTaskPreview.description || "",
+            dueDate: parsedTaskPreview.dueDate || "",
+            status: parsedTaskPreview.status || "pending",
+            subtasks: parsedTaskPreview.subtasks || [],
+          });
+
+          if (success) {
+            setParsedTaskPreview(null);
+            setParseWarnings([]);
+            setConfirmCreate(false);
+            setSmartInput("");
+            setSuccessMessage(`Task "${parsedTaskPreview.title}" created successfully with AI!`);
+            setTimeout(() => setSuccessMessage(""), 3000);
+            fetchTaskInsights();
+          } else {
+            setError("Failed to create task. Please try again.");
+            setTimeout(() => setError(""), 4000);
+          }
+        }
+          const message = subtaskCount > 0 
+            ? `Task "${data.task.title}" created with ${subtaskCount} subtask${subtaskCount > 1 ? 's' : ''} using AI!`
+            : `Task "${data.task.title}" created successfully with AI!`;
+          
+          setSuccessMessage(message);
+          setTimeout(() => setSuccessMessage(""), 4000);
+          
+          // Refresh insights after creating a task
+          fetchTaskInsights();
+        } else {
+          setError("Failed to create task. Please try again.");
+          setTimeout(() => setError(""), 4000);
+        }
+      }
+    } catch (err) {
+      console.error("Smart task creation error:", err);
+      setError(err instanceof Error ? err.message : "Failed to create smart task");
+      setTimeout(() => setError(""), 4000);
+    } finally {
+      setParsingTask(false);
+    }
   };
 
   const onLogout = () => signOut({ callbackUrl: "/login" });
@@ -299,6 +441,99 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* AI Task Insights Section - Shows motivational insights based on task completion patterns */}
+      {taskInsight && (
+        <div style={{
+          padding: '1.25rem 1.5rem',
+          marginBottom: '2rem',
+          background: 'linear-gradient(135deg, #E8F9F8 0%, #D4F1F4 100%)',
+          border: '2px solid #4ECDC4',
+          borderRadius: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          boxShadow: '0 4px 6px -1px rgba(78, 205, 196, 0.1)',
+        }}>
+          <div style={{
+            fontSize: '2rem',
+            flexShrink: 0
+          }}>
+            💡
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.25rem'
+            }}>
+              <span className="material-symbols-outlined" style={{ 
+                fontSize: '1.25rem', 
+                color: '#0891b2',
+                fontWeight: 'bold'
+              }}>
+                auto_awesome
+              </span>
+              <h3 style={{
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: '#0891b2',
+                margin: 0,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                AI Insight
+              </h3>
+            </div>
+            <p style={{
+              fontSize: '1rem',
+              color: '#0e7490',
+              margin: 0,
+              fontWeight: '500',
+              lineHeight: '1.5'
+            }}>
+              {taskInsight}
+            </p>
+          </div>
+          <button
+            onClick={fetchTaskInsights}
+            disabled={loadingInsight}
+            style={{
+              padding: '0.5rem 0.75rem',
+              backgroundColor: loadingInsight ? '#94a3b8' : '#4ECDC4',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '0.5rem',
+              cursor: loadingInsight ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              transition: 'all 0.2s',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => {
+              if (!loadingInsight) {
+                e.currentTarget.style.backgroundColor = '#3DBDB0';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loadingInsight) {
+                e.currentTarget.style.backgroundColor = '#4ECDC4';
+              }
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ 
+              fontSize: '1rem',
+              animation: loadingInsight ? 'spin 1s linear infinite' : 'none'
+            }}>
+              {loadingInsight ? 'refresh' : 'refresh'}
+            </span>
+            {loadingInsight ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
+      )}
       
       <div style={{ marginBottom: '2rem' }}>
 
@@ -361,6 +596,211 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Smart Task Creation Section using AI-powered natural language input */}
+        <div style={{ 
+          backgroundColor: 'var(--card-bg)',
+          borderRadius: '0.75rem', 
+          boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.1)', 
+          padding: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{ marginBottom: '1rem' }}>
+            <h3 style={{ 
+              fontSize: '1.125rem', 
+              fontWeight: 'bold', 
+              color: 'var(--text-primary)',
+              margin: '0 0 0.5rem 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.25rem', color: '#FF6B6B' }}>
+                psychology
+              </span>
+              Smart Task Creation
+            </h3>
+            <p style={{ 
+              fontSize: '0.875rem', 
+              color: 'var(--text-secondary)',
+              margin: 0
+            }}>
+              Describe your task in plain English, and AI will help you create it
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '300px' }}>
+              <input
+                type="text"
+                value={smartInput}
+                onChange={(e) => setSmartInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !parsingTask && smartInput.trim()) {
+                    e.preventDefault();
+                    handleSmartTaskCreation();
+                  }
+                }}
+                placeholder='Try: "Complete project report by Friday" or "Meeting with team tomorrow at 3pm"'
+                disabled={parsingTask}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.95rem',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '0.5rem',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  fontFamily: 'inherit'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#4ECDC4'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+              />
+              <div style={{ 
+                marginTop: '0.5rem',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                gap: '1rem',
+                flexWrap: 'wrap'
+              }}>
+                <span>💡 Examples:</span>
+                <button
+                  onClick={() => setSmartInput("Submit tax documents by 25th October")}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#4ECDC4',
+                    cursor: 'pointer',
+                    padding: '0',
+                    textDecoration: 'underline',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  "Submit tax documents by 25th October"
+                </button>
+                <button
+                  onClick={() => setSmartInput("Review code tomorrow afternoon")}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#4ECDC4',
+                    cursor: 'pointer',
+                    padding: '0',
+                    textDecoration: 'underline',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  "Review code tomorrow afternoon"
+                </button>
+              </div>
+            </div>
+            
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Button clicked! smartInput:", smartInput, "parsingTask:", parsingTask);
+                if (smartInput.trim() && !parsingTask) {
+                  handleSmartTaskCreation();
+                } else {
+                  console.log("Button click ignored - input empty or already parsing");
+                }
+              }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: (!smartInput.trim() || parsingTask) ? '#95a5a6' : '#FF6B6B',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: parsingTask || !smartInput.trim() ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.95rem',
+                fontWeight: '500',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                opacity: (!smartInput.trim() || parsingTask) ? 0.6 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!parsingTask && smartInput.trim()) {
+                  e.currentTarget.style.backgroundColor = '#E85A5A';
+                  e.currentTarget.style.cursor = 'pointer';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!parsingTask && smartInput.trim()) {
+                  e.currentTarget.style.backgroundColor = '#FF6B6B';
+                } else {
+                  e.currentTarget.style.cursor = 'not-allowed';
+                }
+              }}
+            >
+              {parsingTask ? (
+                <>
+                  <span className="material-symbols-outlined" style={{ 
+                    fontSize: '1.25rem',
+                    animation: 'spin 1s linear infinite'
+                  }}>
+                    refresh
+                  </span>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>
+                    auto_awesome
+                  </span>
+                  Create with AI
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Parsed task warnings and confirmation UI */}
+          {parseWarnings && parseWarnings.length > 0 && (
+            <div style={{ marginTop: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: '#FFF4E5', border: '1px solid #FFD9A6' }}>
+              <strong style={{ color: '#7A4B00' }}>AI Warning</strong>
+              <ul style={{ margin: '0.5rem 0 0 1rem', color: '#7A4B00' }}>
+                {parseWarnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => {
+                    // Allow the user to edit the parsed data manually by opening the create modal
+                    setParsedTaskPreview(null);
+                    setParseWarnings([]);
+                    setShowCreateModal(true);
+                    // prefill the modal with parsed data if available
+                    if (parsedTaskPreview) setFormData({ ...formData, ...parsedTaskPreview });
+                  }}
+                  style={{ padding: '0.5rem 0.75rem', background: 'none', border: '1px solid #7A4B00', color: '#7A4B00', borderRadius: '6px', cursor: 'pointer' }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    // Set confirmation flag to true and trigger creation flow
+                    setConfirmCreate(true);
+                    // Re-run the smart creation flow which checks confirmCreate and parsedTaskPreview
+                    handleSmartTaskCreation();
+                  }}
+                  style={{ padding: '0.5rem 0.75rem', background: '#7A4B00', border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer' }}
+                >
+                  Create Anyway
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Kanban board section with three columns for Pending, In Progress, and Completed tasks */}
         <div style={{ marginBottom: '2rem' }}>
