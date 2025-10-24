@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FadeIn } from "@repo/ui/app-ui";
+
+import CreativeCards from "../components/CreativeCards";
 import Image from "next/image";
 
 export default function HomePage() {
@@ -42,8 +44,8 @@ export default function HomePage() {
             style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
           >
             <Image
-              src="/karthavyalogo.png"
-              alt="Karthavya Logo"
+              src="/pracspherelogo.png"
+              alt="PracSphere Logo"
               width={500}
               height={100}
               style={{
@@ -192,16 +194,16 @@ export default function HomePage() {
                   letterSpacing: "0.3px",
                 }}
               >
-                Professional Task Management
+               AI-powered Task & Productivity Platform
               </span>
             </div>
           </FadeIn>
 
           <FadeIn delay={300}>
-            <h1
+            <h2
               style={{
-                fontSize: "4.5rem",
-                fontWeight: "800",
+                fontSize: "4.25rem",
+                fontWeight: "780",
                 color: "#2C3E50",
                 lineHeight: "1.15",
                 marginTop: "-2rem",
@@ -209,30 +211,34 @@ export default function HomePage() {
                 letterSpacing: "-2px",
               }}
             >
-              Complete Your
+              Welcome to
               <br />
-              <span style={{ color: "#4ECDC4" }}>Karthavya</span> with
+              <span style={{ color: "#4ECDC4" }}>PracSphere</span> your
               <br />
-              <span style={{ color: "#FF6B6B" }}>Confidence</span>
-            </h1>
+              <span style={{ color: "#FF9F43" }}>AI Powered </span>ERP System
+              <br />
+              <span style={{ color: "#FF6B6B" }}>for Task Management</span>
+              <br/>
+            </h2>
           </FadeIn>
 
           <FadeIn delay={400}>
+            
             <p
               style={{
-                fontSize: "1.15rem",
+                fontSize: "1.25rem",
                 color: "#5D6D7E",
-                lineHeight: "1.8",
+                lineHeight: "1.9",
                 marginBottom: "3rem",
-                maxWidth: "550px",
-                fontWeight: "400",
+                maxWidth: "600px",
+                fontWeight: "500",
                 marginTop: "-1.8rem",
               }}
             >
-              Transform the way you manage tasks with our intuitive platform.
-              Stay organized, track progress, and achieve your goals efficiently
-              with powerful collaboration tools.
+            PracSphere brings clarity to your workflow. Describe tasks in simple language and let AI structure them for you. Stay organized, track progress
+    effortlessly, and focus on what matters most — getting things done.
             </p>
+            <br/>
           </FadeIn>
 
           <FadeIn delay={500}>
@@ -356,6 +362,13 @@ export default function HomePage() {
           </div>
         </FadeIn>
       </main>
+      {/* Feature Cards Section - replaced with CreativeCards */}
+        <FadeIn delay={600}>
+          <div style={{ marginTop: "-11.5rem", marginBottom: "2rem" }}>
+            {/* @ts-ignore */}
+            <CreativeCards/>
+          </div>
+        </FadeIn>
 
       {/* Footer Status */}
       {status === "authenticated" && (

@@ -19,6 +19,8 @@ A full-stack task management application built with Next.js, MongoDB, and NextAu
 - Password change and account deletion
 - Dark/light theme support
 - Responsive design for mobile and desktop
+- Zod Validation for forms
+
 
 ---
 
