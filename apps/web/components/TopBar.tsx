@@ -12,7 +12,7 @@ interface TopBarProps {
 export default function TopBar({ 
   userName, 
   userEmail, 
-  projectName = "Project Karthavya",
+  projectName = "Project PracSphere",
   projectStatus = "Active" 
 }: TopBarProps) {
   const [isDarkMode, setIsDarkMode] = useState(false);

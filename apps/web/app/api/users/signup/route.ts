@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/mongodb";
 import { generateOTP, hashOTP, getOTPExpiry } from "@/lib/otp";
 import { sendOTPEmail } from "@/lib/email";
 import { signupSchema } from "@/lib/validations";
+import { getUserSlug } from "@/utils/urlHelpers";
 import { z } from "zod";
 
 export async function POST(req: Request) {
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
 
     await connectDB();
 
-    // Check if user already exists
+    // Check if user already exists with this email
     const existing = await User.findOne({ email });
     if (existing) {
       // If user exists but email not verified, allow resending OTP
@@ -73,6 +74,20 @@ export async function POST(req: Request) {
         {
           error: "User already exists. Please login or use a different email.",
         },
+        { status: 409 }
+      );
+    }
+
+    // Check if username slug would conflict with existing users
+    const proposedSlug = getUserSlug(name, email);
+    const allUsers = await User.find({});
+    const slugConflict = allUsers.some(user => 
+      getUserSlug(user.name, user.email) === proposedSlug
+    );
+
+    if (slugConflict) {
+      return NextResponse.json(
+        { error: "This name combined with your email creates a username that's already taken. Please try a different name or email." },
         { status: 409 }
       );
     }

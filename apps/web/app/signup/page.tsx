@@ -1,25 +1,72 @@
 
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { signupSchema, type SignupInput } from "@/lib/validations";
+import { getUserSlug } from "@/utils/urlHelpers";
 import { z } from "zod";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof SignupInput, string>>>({});
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const username = getUserSlug(session.user.name, session.user.email);
+      router.push(`/dashboard/${username}`);
+    }
+  }, [status, session, router]);
+
+  // Force light theme while this signup page is mounted, restore on unmount
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      const prevTheme = root.getAttribute("data-theme");
+      const hadLight = root.classList.contains("light");
+      const hadDark = root.classList.contains("dark");
+      const prevBg = root.style.getPropertyValue("--background");
+      const prevFg = root.style.getPropertyValue("--foreground");
+
+      root.setAttribute("data-theme", "light");
+      root.classList.remove("dark");
+      root.classList.add("light");
+      root.style.setProperty("--background", "#ffffff");
+      root.style.setProperty("--foreground", "#171717");
+
+      return () => {
+        if (prevTheme) root.setAttribute("data-theme", prevTheme);
+        else root.removeAttribute("data-theme");
+
+        root.classList.remove("light", "dark");
+        if (hadLight) root.classList.add("light");
+        if (hadDark) root.classList.add("dark");
+
+        if (prevBg) root.style.setProperty("--background", prevBg);
+        else root.style.removeProperty("--background");
+
+        if (prevFg) root.style.setProperty("--foreground", prevFg);
+        else root.style.removeProperty("--foreground");
+      };
+    } catch (e) {
+      return;
+    }
+  }, []);
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError("");
     try {
-      await signIn("google", { callbackUrl: "/dashboard" });
+      // Don't set callbackUrl - let useEffect handle redirect with dynamic username
+      await signIn("google", { redirect: false });
+      // After successful sign-in, useEffect will redirect to /dashboard/[username]
     } catch {
       setError("Google sign-in failed. Please try again.");
       setGoogleLoading(false);

@@ -1,27 +1,73 @@
-
 "use client";
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loginSchema, type LoginInput } from "@/lib/validations";
 import { z } from "zod";
+import { getUserSlug } from "@/utils/urlHelpers";
 
 // Login page component that supports both credential login and Google OAuth
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | React.ReactNode>("");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof LoginInput, string>>>({});
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const username = getUserSlug(session.user.name, session.user.email);
+      router.push(`/dashboard/${username}`);
+    }
+  }, [status, session, router]);
+
+  // Force light theme while this login page is mounted, restore on unmount
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      const prevTheme = root.getAttribute("data-theme");
+      const hadLight = root.classList.contains("light");
+      const hadDark = root.classList.contains("dark");
+      const prevBg = root.style.getPropertyValue("--background");
+      const prevFg = root.style.getPropertyValue("--foreground");
+
+      root.setAttribute("data-theme", "light");
+      root.classList.remove("dark");
+      root.classList.add("light");
+      root.style.setProperty("--background", "#ffffff");
+      root.style.setProperty("--foreground", "#171717");
+
+      return () => {
+        if (prevTheme) root.setAttribute("data-theme", prevTheme);
+        else root.removeAttribute("data-theme");
+
+        root.classList.remove("light", "dark");
+        if (hadLight) root.classList.add("light");
+        if (hadDark) root.classList.add("dark");
+
+        if (prevBg) root.style.setProperty("--background", prevBg);
+        else root.style.removeProperty("--background");
+
+        if (prevFg) root.style.setProperty("--foreground", prevFg);
+        else root.style.removeProperty("--foreground");
+      };
+    } catch (e) {
+      return;
+    }
+  }, []);
+
   // Initiate Google OAuth sign-in flow
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError("");
     try {
-      await signIn("google", { callbackUrl: "/dashboard" });
+      // Don't set callbackUrl - let useEffect handle redirect with dynamic username
+      await signIn("google", { redirect: false });
+      // After successful sign-in, useEffect will redirect to /dashboard/[username]
     } catch {
       setError("Google sign-in failed. Please try again.");
       setGoogleLoading(false);
@@ -43,11 +89,10 @@ export default function LoginPage() {
         email: validatedData.email,
         password: validatedData.password,
         redirect: false,
-        callbackUrl: "/dashboard",
       });
       
       if (res?.ok) {
-        router.push("/dashboard");
+        // Session will be updated, useEffect will handle redirect
       } else {
         const errorMessage = res?.error || "Invalid credentials";
 

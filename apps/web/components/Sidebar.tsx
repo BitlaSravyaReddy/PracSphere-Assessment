@@ -1,6 +1,8 @@
 // this is the sidebar component with expand/collapse functionality and animated icons
 "use client";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { getUserSlug } from "@/utils/urlHelpers";
 
 interface SidebarProps {
   activePath: string;
@@ -11,6 +13,10 @@ export default function Sidebar({ activePath, onLogout }: SidebarProps) {
   // these two checks the state of sidebar (expanded/collapsed) and hovered item
   const [isExpanded, setIsExpanded] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const { data: session } = useSession();
+
+  // Get username slug for dynamic routing
+  const username = session?.user ? getUserSlug(session.user.name, session.user.email) : 'user';
 
   return (
     <>
@@ -136,29 +142,89 @@ export default function Sidebar({ activePath, onLogout }: SidebarProps) {
             width: '100%'
           }}>
             {isExpanded ? (
-              <img 
-                src="/karthavyalogo.png" 
-                alt="Karthavya Logo" 
-                style={{
-                  height: '150px',
-                  width: '200px',
-                  objectFit: 'cover',
-                  animation: 'slideIn 0.4s ease-out'
-                }}
-              />
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                animation: 'slideIn 0.4s ease-out',
+                minHeight: '48px',
+                marginLeft: '0.1rem',
+                maxWidth: '200px',
+                width: '100%',
+                overflow: 'hidden',
+              }}>
+                <div
+                  className="logo-pulse"
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #FF6B6B 60%, #FFB347 100%)',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    fontSize: '1.6rem',
+                    color: '#fff',
+                    boxShadow: '0 2px 8px rgba(255,107,107,0.12)',
+                    letterSpacing: '-2px',
+                    userSelect: 'none',
+                    fontFamily: 'Inter, sans-serif',
+                    border: '2px solid #fff',
+                  }}
+                  aria-label="PracSphere Logo"
+                >
+                  P
+                </div>
+                <span style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 900,
+                  fontSize: '1.25rem',
+                  letterSpacing: '-0.5px',
+                  background: 'linear-gradient(90deg, #FF6B6B 40%, #FFB347 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  color: '#FF6B6B',
+                  marginLeft: '0.1rem',
+                  marginTop: '0.1rem',
+                  userSelect: 'none',
+                  lineHeight: 1.1,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '140px',
+                  display: 'inline-block',
+                }}>
+                  PracSphere
+                </span>
+              </div>
             ) : (
-              <img 
-                src="/logo.png" 
-                alt="Karthavya Logo" 
+              <div
                 className="logo-pulse"
                 style={{
-                  width: '80px',
-                  height: 'auto',
-                  marginLeft:'0.3rem',
-                  marginRight:'0.3rem',
-                  objectFit: 'cover'
+                  width: '64px',
+                  height: '64px',
+                  marginLeft: '0.3rem',
+                  marginRight: '0.3rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(135deg, #FF6B6B 60%, #FFB347 100%)',
+                  borderRadius: '18px',
+                  fontWeight: 800,
+                  fontSize: '2.5rem',
+                  color: '#fff',
+                  boxShadow: '0 2px 8px rgba(255,107,107,0.12)',
+                  letterSpacing: '-2px',
+                  userSelect: 'none',
+                  fontFamily: 'Inter, sans-serif',
+                  border: '2px solid #fff',
                 }}
-              />
+                aria-label="PracSphere Logo"
+              >
+                P
+              </div>
             )}
           </div>
         </div>
@@ -182,7 +248,7 @@ export default function Sidebar({ activePath, onLogout }: SidebarProps) {
           
           {/* Dashboard Link */}
           <a
-            href="/dashboard"
+            href={`/dashboard/${username}`}
             onMouseEnter={() => setHoveredItem('dashboard')}
             onMouseLeave={() => setHoveredItem(null)}
             style={{ 
@@ -234,7 +300,7 @@ export default function Sidebar({ activePath, onLogout }: SidebarProps) {
 
           {/* Tasks Link */}
           <a
-            href="/tasks"
+            href={`/tasks/${username}`}
             onMouseEnter={() => setHoveredItem('tasks')}
             onMouseLeave={() => setHoveredItem(null)}
             style={{ 
@@ -285,7 +351,7 @@ export default function Sidebar({ activePath, onLogout }: SidebarProps) {
 
           {/* Profile Link */}
           <a
-            href="/profile"
+            href={`/profile/${username}`}
             onMouseEnter={() => setHoveredItem('profile')}
             onMouseLeave={() => setHoveredItem(null)}
             style={{ 

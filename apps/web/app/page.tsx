@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FadeIn } from "@repo/ui/app-ui";
+import { getUserSlug } from "@/utils/urlHelpers";
 
 import CreativeCards from "../components/CreativeCards";
 import Image from "next/image";
@@ -13,12 +14,54 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
-
+  
   useEffect(() => {
-    if (status === "authenticated") {
-      router.push("/dashboard");
+    if (status === "authenticated" && session?.user) {
+      const username = getUserSlug(session.user.name, session.user.email);
+      router.push(`/dashboard/${username}`);
     }
-  }, [status, router]);
+  }, [status, session, router]);
+
+  // Force light theme while this landing page is mounted, then restore previous theme on unmount.
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      const prevTheme = root.getAttribute("data-theme");
+      const hadLight = root.classList.contains("light");
+      const hadDark = root.classList.contains("dark");
+      const prevBg = root.style.getPropertyValue("--background");
+      const prevFg = root.style.getPropertyValue("--foreground");
+
+      // Apply light theme
+      root.setAttribute("data-theme", "light");
+      root.classList.remove("dark");
+      root.classList.add("light");
+      root.style.setProperty("--background", "#ffffff");
+      root.style.setProperty("--foreground", "#171717");
+
+      return () => {
+        // Restore previous attributes/classes/vars
+        if (prevTheme) {
+          root.setAttribute("data-theme", prevTheme);
+        } else {
+          root.removeAttribute("data-theme");
+        }
+
+        root.classList.remove("light", "dark");
+        if (hadLight) root.classList.add("light");
+        if (hadDark) root.classList.add("dark");
+
+        if (prevBg) root.style.setProperty("--background", prevBg);
+        else root.style.removeProperty("--background");
+
+        if (prevFg) root.style.setProperty("--foreground", prevFg);
+        else root.style.removeProperty("--foreground");
+      };
+    } catch (e) {
+      // If anything goes wrong, don't block the page — silently fail.
+      return;
+    }
+  }, []);
 
   return (
     <div
@@ -43,7 +86,7 @@ export default function HomePage() {
           <div
             style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
           >
-            <Image
+            {/* <Image
               src="/pracspherelogo.png"
               alt="PracSphere Logo"
               width={500}
@@ -55,7 +98,62 @@ export default function HomePage() {
                 objectFit: "cover",
               }}
               priority
-            />
+            /> */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                animation: 'slideIn 0.4s ease-out',
+                minHeight: '48px',
+                marginLeft: '0.1rem',
+                width: '100%',
+                overflow: 'hidden',
+              }}>
+                <div
+                  className="logo-pulse"
+                  style={{
+                    width: '50px',
+                    height: '50px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #FF6B6B 60%, #FFB347 100%)',
+                    borderRadius: '12px',
+                    fontWeight: 900,
+                    fontSize: '1.6rem',
+                    color: '#fff',
+                    boxShadow: '0 2px 8px rgba(255,107,107,0.12)',
+                    letterSpacing: '-2px',
+                    userSelect: 'none',
+                    fontFamily: 'Inter, sans-serif',
+                    border: '2px solid #fff',
+                  }}
+                  aria-label="PracSphere Logo"
+                >
+                  P
+                </div>
+                <span style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 900,
+                  fontSize: '2.25rem',
+                  letterSpacing: '0.5px',
+                  background: 'linear-gradient(90deg, #FF6B6B 40%, #FFB347 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  color: '#FF6B6B',
+                  marginLeft: '0.1rem',
+                  marginTop: '0.1rem',
+                  userSelect: 'none',
+                  lineHeight: 1.5,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'inline-block',
+                }}>
+                  PracSphere
+                </span>
+              </div>
           </div>
         </FadeIn>
 
@@ -202,8 +300,8 @@ export default function HomePage() {
           <FadeIn delay={300}>
             <h2
               style={{
-                fontSize: "4.25rem",
-                fontWeight: "780",
+                fontSize: "3.25rem",
+                fontWeight: "700",
                 color: "#2C3E50",
                 lineHeight: "1.15",
                 marginTop: "-2rem",

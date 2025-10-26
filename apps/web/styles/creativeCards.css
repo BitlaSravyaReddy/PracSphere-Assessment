@@ -16,8 +16,22 @@ body{
   box-sizing: border-box;
 }
 .creative-cards{
-    padding: 120px 0;
+    padding: 160px 0 80px;
     position: relative;
+}
+.creative-cards .blue-strip{
+    position: absolute;
+    left: 0;
+    right: 0;
+    /* place the strip near the top of the section so card heads overlap it */
+    top: 60px;
+    height: 150px;
+    background: linear-gradient(90deg, #4E9EFF 0%, #4ECDC4 100%);
+    z-index: 1;
+}
+.creative-cards .container{
+    position: relative;
+    z-index: 2; /* keep cards above the strip */
 }
 .creative-cards .container {
     max-width: 1320px;
@@ -44,6 +58,9 @@ body{
     margin: auto;
     position: relative;
     transition: .3s ease-in-out;
+    z-index: 3; /* ensure cards render above the blue strip */
+    /* lift cards up slightly so their heads overlap the blue strip (~20% of the icon height) */
+    margin-top: -30px;
 }
 .card-details:before {
     content: "";
@@ -154,6 +171,7 @@ body{
 }
 .card-details{
     width: 100%;
+    margin-top: -15px; /* reduce overlap on small screens */
 }
 .read-more-btn{
         transform: translateX(0px);

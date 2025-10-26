@@ -6,6 +6,8 @@ import "../styles/creativeCards.css";
 const CreativeCards: React.FC = () => {
   return (
 	<section className="creative-cards style-one">
+		{/* Full width blue strip behind the cards. Cards will overlap this strip */}
+		<div className="blue-strip" />
 		<div className="container">
 			<div className="row">
 				<div className="card-column">

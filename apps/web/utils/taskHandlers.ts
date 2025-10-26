@@ -9,6 +9,7 @@ interface TaskHandlersProps {
   resetForm: () => void;
   editingTask: Task | null;
   formData: TaskFormData;
+  clearTaskUrl?: () => void; // Optional callback to clear URL params
 }
 
 export function createTaskHandlers({
@@ -20,6 +21,7 @@ export function createTaskHandlers({
   resetForm,
   editingTask,
   formData,
+  clearTaskUrl,
 }: TaskHandlersProps) {
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +29,8 @@ export function createTaskHandlers({
     if (success) {
       setShowCreateModal(false);
       resetForm();
+      // Clear URL params if callback provided
+      if (clearTaskUrl) clearTaskUrl();
     }
   };
 
@@ -38,6 +42,8 @@ export function createTaskHandlers({
     if (success) {
       setEditingTask(null);
       resetForm();
+      // Clear URL params after successful update
+      if (clearTaskUrl) clearTaskUrl();
     }
   };
 
