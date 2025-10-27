@@ -1,7 +1,3 @@
-/**
- * Root Page - Redirects to appropriate route based on authentication status
- * This file exists to handle the root "/" route and is duplicated in (public)/page.tsx
- */
 "use client";
 
 import Link from "next/link";
@@ -11,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { FadeIn } from "@repo/ui/app-ui";
 import { getUserSlug } from "@/utils/urlHelpers";
 
-import CreativeCards from "../components/CreativeCards";
+import CreativeCards from "@/components/CreativeCards";
 import Image from "next/image";
 
 export default function HomePage() {
@@ -72,7 +68,7 @@ export default function HomePage() {
       style={{
         backgroundColor: "#FFFFFF",
         minHeight: "100vh",
-        overflow: "hidden",
+        overflow: "visible",
       }}
     >
       {/* Navigation Header */}
@@ -465,12 +461,48 @@ export default function HomePage() {
         </FadeIn>
       </main>
       {/* Feature Cards Section - replaced with CreativeCards */}
+      <section style={{ padding: "2rem 4rem", backgroundColor: "#FFFFFF", display: "block", width: "100%" }}>
         <FadeIn delay={600}>
-          <div style={{ marginTop: "-11.5rem", marginBottom: "2rem" }}>
+          <div style={{ marginTop: "2rem", marginBottom: "4rem" }}>
             {/* @ts-ignore */}
             <CreativeCards/>
           </div>
         </FadeIn>
+        
+        {/* What is PracSphere Info Section */}
+        <div style={{
+          textAlign: "center",
+          margin: "3rem auto",
+          maxWidth: "800px",
+          background: "linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%)",
+          borderRadius: "20px",
+          padding: "3rem 2.5rem",
+          boxShadow: "0 4px 20px rgba(78,205,196,0.15)",
+          border: "3px solid #4ECDC4",
+          position: "relative",
+          display: "block",
+          minHeight: "200px"
+        }}>
+          <h3 style={{
+            color: "#2C3E50",
+            fontWeight: 800,
+            fontSize: "2.2rem",
+            marginBottom: "1.5rem",
+            letterSpacing: "-1px"
+          }}>
+            What is PracSphere?
+          </h3>
+          <p style={{
+            fontSize: "1.2rem",
+            color: "#5D6D7E",
+            lineHeight: 1.9,
+            marginBottom: 0,
+            fontWeight: 500
+          }}>
+            <b style={{ color: "#FF6B6B" }}>PracSphere</b> is your all-in-one, AI-powered productivity and task management platform. Effortlessly organize your work, track progress, and collaborate with your team. Describe your tasks in natural language and let our AI structure, prioritize, and break them down for you. With real-time dashboards, smart reminders, and seamless integrations, PracSphere helps you focus on what matters most—getting things done, together.
+          </p>
+        </div>
+      </section>
 
       {/* Footer Status */}
       {status === "authenticated" && (
