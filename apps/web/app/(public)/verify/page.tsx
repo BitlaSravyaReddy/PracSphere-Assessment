@@ -1,12 +1,29 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function VerifyPage() {
-  const router = useRouter();
+function VerifyContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
+  
+  return (
+    <div>
+      <VerifyForm email={email} />
+    </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyContent />
+    </Suspense>
+  );
+}
+
+function VerifyForm({ email }: { email: string }) {
+  const router = useRouter();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");

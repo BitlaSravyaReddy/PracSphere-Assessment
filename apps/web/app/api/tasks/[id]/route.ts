@@ -6,11 +6,19 @@ import Task from "@/models/task";
 import { taskSchema } from "@/lib/validations";
 import { z } from "zod";
 
-// GET a single task by ID
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Simple type declaration
+declare interface RequestHandler {
+  (req: Request, context: { params: { id: string } }): Promise<Response>;
+}
+
+type RouteParams = {
+  params: {
+    id: string;
+  };
+};
+
+export const GET: RequestHandler = async (request, { params }) => {
+  const { id } = params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -19,7 +27,7 @@ export async function GET(
 
     await connectDB();
     const task = await Task.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user.email,
     });
 
@@ -34,18 +42,15 @@ export async function GET(
   }
 }
 
-// PUT update a task
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const PUT: RequestHandler = async (request, { params }) => {
+  const { id } = params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await request.json();
 
     // Create a flexible update schema that allows past dates (for overdue tasks)
     const updateSchema = z.object({
