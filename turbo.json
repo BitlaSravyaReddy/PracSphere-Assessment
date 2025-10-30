@@ -2,6 +2,8 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
   "globalEnv": [
+    "NEXTAUTH_URL",
+    "NEXT_PUBLIC_AUTH_URL",
     "GEMINI_API_KEY",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
